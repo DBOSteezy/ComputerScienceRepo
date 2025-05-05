@@ -1,8 +1,12 @@
 
 # Devlin O'Rourke
 # Intro to Computer Science
-# Assignment 10 - Inventory List
+# Assignment 11 - Saving and Loading
 # 5/4/25
+
+import os
+import json
+import random
 
 # game.py
 from gamefunctions import (
@@ -14,17 +18,29 @@ from gamefunctions import (
     get_user_choice,
     add_item_to_inventory,
     equip_item,
-    use_item
+    use_item,
+    save_game,
+    load_game
 )
 
 def main():
-    # Get player's name
-    player_name = input("Enter your name: ")
-    print_welcome(player_name)
-    player_hp = 30
-    player_gold = 100000
-    inventory = []
-    equipped_weapon = None # Track equipped weapon
+    # Load game state if available
+    save_filename = "savegame.json"
+    load_choice = input("Do you want to load a saved game? (y/n): ").lower()
+    if load_choice == 'y' and os.path.exists(save_filename):
+        inventory, player_hp, player_gold = load_game(save_filename)
+        equipped_weapon = None
+        for item in inventory:
+            if item.get('type') == 'weapon':
+                equipped_weapon = item
+                break
+    else:
+        player_name = input("Enter your name: ")
+        print_welcome(player_name)
+        player_hp = 30
+        player_gold = 100000
+        inventory = []
+        equipped_weapon = None # Track equipped weapon
 
     # Main game loop
     while True:
@@ -35,9 +51,10 @@ def main():
         print("2. Sleep (Restore HP for 5 Gold)")
         print("3. Shop")
         print("4. Manage Inventory")
-        print("5. Exit Game")
+        print("5. Save Game")
+        print("6. Exit without Saving")
         # Get user choice
-        choice = get_user_choice("Enter your choice (1-5): ", ['1', '2', '3', '4', '5'])
+        choice = get_user_choice("Enter your choice (1-6): ", ['1', '2', '3', '4', '5', '6'])
 
         if choice == '1':
             # Fight a monster
@@ -160,23 +177,12 @@ def main():
             else:
                 continue
         elif choice == '5':
-            print("Thanks for playing!")
+            # Save game
+            save_game(save_filename, inventory, player_hp, player_gold)
+            print("Game saved successfully!")
+        elif choice == '6':
+            print("Thanks for playing! No progress saved.")
             break  # Exit game
-
-    # Show shop menu
-#    print_shop_menu("Sword", 50.00, "Shield", 30.00)
-
-    # Purchase an item
-#    money = 100 # Starting money for the player
-#    item_price = 50.00 # Price of the item
-#    quantity = 1 # Default quantity
-#    num_purchased, remaining_money = purchase_item(item_price, money, quantity)
-#    print(f"You purchased {num_purchased} item(s). Money left: ${remaining_money:.2f}")
-
-    # Spawn a random monster
-#    monster = new_random_monster()
-#    print(f"A wild{monster['name']} appears!")
-#    print(monster['description'])
 
 if __name__ == "__main__":
     main()

@@ -1,6 +1,6 @@
 # Devlin O'Rourke
 # Intro to Compuer Science
-# Assignment 10 - Inventory List
+# Assignment 11 - Saving and Loading
 # 3/4/25
 
 """Game Functions Module
@@ -26,6 +26,9 @@ Functions:
 """
 
 import random
+import json
+import os
+
 
 def purchase_item(itemPrice: float, startingMoney: float, quantityToPurchase: int = 1):
     """Allows a player to purchase items within the game.
@@ -246,39 +249,52 @@ def use_item(inventory: list):
     else:
         return None
 
-# def test_functions():
-#    """Function to test the functionalities of the game."""
-#    # Test purchase_item function
-#    num_purchased, leftover_money = purchase_item(1.23, 10, 3)
-#    print(f"Purchased: {num_purchased}, Money left: {leftover_money:.2f}")
-#
-#    num_purchased, leftover_money = purchase_item(1.23, 10, 3)
-#    print(f"Purchased: {num_purchased}, Money left: {leftover_money:.2f}")
-#
-#    num_purchased, leftover_money = purchase_item(1.23, 10, 3)
-#    print(f"Purchased: {num_purchased}, Money left: {leftover_money:.2f}")
-#
-#    num_purchased, leftover_money = purchase_item(1.23, 10, 3)
-#    print(f"Purchased: {num_purchased}, Money left: {leftover_money:.2f}")
-#
-    # Test new_random_monster function
-#    for _ in range(3):
-#        my_monster = new_random_monster()
-#        print(f"Monster Name: {my_monster['name']}")
-#        print(f"Description: {my_monster['description']}")
-#        print(f"Health: {my_monster['health']}")
-#        print(f"Power: {my_monster['power']}")
-#        print(f"Money: {my_monster['money']}")
-#
-    # Test print_welcome function
-#    print_welcome("Jeffery")
-#    print_welcome("Audrey")
-#    print_welcome("Lord Farquad")
+def save_game(filename, inventory, player_hp, player_gold):
+    """
+    Save the current game state to a JSON file.
 
-    # Test print_shop_menu function
-#    print_shop_menu("Apple", 31, "Pear", 1.234)
-#    print_shop_menu("Egg", 1.64, "Bag of Oats", 12.34)
-#    print_shop_menu("Orange", 1.5, "Banana", 1.99)
+    Args:
+        filename (str): The filename to save the game to.
+        inventory (list): List of item dictionaries in the player's inventory.
+        player_hp (int): The player's current health points.
+        player_gold (int): The player's current gold.
+    """
+    game_state = {
+        'inventory': inventory,
+        'player_hp': player_hp,
+        'player_gold': player_gold
+    }
+    try:
+        with open(filename, 'w') as f:
+            json.dump(game_state, f)
+        print("Game saved successfully.")
+    except Exception as e:
+        print(f"Error saving game: {e}")
 
-# if __name__ == "__main__":
-#    test_functions()
+def load_game(filename):
+    """
+    Load the game state from a JSON file.
+
+    Args:
+        filename (str): The filename to load the game from.
+
+    Returns:
+        tuple: (inventory, player_hp, player_gold)
+    """
+    try:
+        with open(filename, 'r') as f:
+            game_state = json.load(f)
+        inventory = game_state.get('inventory', [])
+        player_hp = game_state.get('player_hp', 30)
+        player_gold = game_state.get('player_gold', 0)
+        print("Game loaded successfully.")
+        return inventory, player_hp, player_gold
+    except FileNotFoundError:
+        print("Save file not found. Starting a new game.")
+        return [], 30, 0
+    except json.JSONDecodeError:
+        print("Corrupted save file. Starting a new game.")
+        return [], 30, 0
+    except Exception as e:
+        print(f"Error loading game: {e}")
+        return [], 30, 0
