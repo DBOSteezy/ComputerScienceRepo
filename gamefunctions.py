@@ -1,6 +1,6 @@
 # Devlin O'Rourke
 # Intro to Compuer Science
-# Assignment 9 - Game Loops
+# Assignment 10 - Inventory List
 # 3/4/25
 
 """Game Functions Module
@@ -18,7 +18,7 @@ Functions:
         Spawns a new random monster with attributes like name, health
         power, and money
 
-    print_welcome(name:str, width: int = 20) -> None:
+    print_welcome(name, width = 20) -> None:
         Prints a greeting message to the player.
 
     print_shop_menu(item1Name: str, item1Price: float, item2Name: str, item2Price: float) -> None:
@@ -47,7 +47,7 @@ def purchase_item(itemPrice: float, startingMoney: float, quantityToPurchase: in
     quantity_purchased = min(max_affordable, quantityToPurchase)
     remaining_money = startingMoney - (quantity_purchased * itemPrice)
 
-    return quantity_purchased, remaining_money
+    return int(quantity_purchased), remaining_money
 
 def new_random_monster() -> dict:
     """Spawns a new random monster with attributes
@@ -138,33 +138,113 @@ def get_user_choice(prompt: str, options: list):
         else:
             print(f"Invalid input, please choose from {', '.join(options)}.")
 
-def fight_monster(player_hp, player_gold, monster):
-    """Fighting a monster mechanics"""
+def fight_monster(player_hp, player_gold, monster, inventory, equipped_weapon):
+    """Fighting a monster mechanics with special item handling."""
     print(f"\nA wild {monster['name']} appears!")
     print(monster['description'])
     monster_hp = monster['health']
+    # Check if player has Monster Eliminator
+    monster_elim = None
+    for item in inventory:
+        if item['name'] == 'Monster Eliminator':
+            monster_elim = item
+            break
+
     while monster_hp > 0 and player_hp > 0:
         print(f"\nYour HP:{player_hp} | {monster['name']} HP:{monster_hp}")
-        action = get_user_choice("Do you want to (F)ight or (R)un?", ['F', 'R', 'f', 'r'])
-        if action == 'r' or action == 'R':
+        action = get_user_choice("Do you want to (F)ight, (R)un, or (U)se item?", ['F','R','U','f','r','u'])
+        if action.lower() == 'r':
             print("You run away.")
-        elif action == 'f' or action == 'F':
+            break
+        elif action.lower() == 'u':
+            # Use an item
+            used_item = use_item(inventory)
+            if used_item:
+                if used_item['name'] == 'Monster Eliminator':
+                    # Instant kill
+                    monster_hp = 0
+                    print("Monster Eliminator used! Monster is instantly defeated.")
+                    inventory.remove(used_item)
+                elif used_item['name'] == 'Health Potion':
+                    # Restore health
+                    player_hp += 10
+                    if player_hp > 30:
+                        player_hp = 30
+                    print("Health Potion used! Restored 10 HP.")
+                    inventory.remove(used_item)
+                else:
+                    print("Cannot use this item now.")
+            continue
+        elif action.lower() == 'f':
             print("You choose to fight")
-            damage_to_monster = random.randint(1, 5)
+            # Calculate attack damage
+            attack_damage = 1
+            if equipped_weapon:
+                attack_damage = equipped_weapon.get('attack', 1)
+                # Decrease durability
+                equipped_weapon['currentDurability'] -= 1
+                if equipped_weapon['currentDurability'] <= 0:
+                    print(f"Your {equipped_weapon['name']} has broken!")
+                    inventory.remove(equipped_weapon)
+                    equipped_weapon = None
+            damage_to_monster = attack_damage + random.randint(0, 2)
             damage_to_player = random.randint(0, monster['power'])
             monster_hp -= damage_to_monster
             player_hp -= damage_to_player
             print(f"You deal {damage_to_monster} damage!")
             print(f"{monster['name']} dealt {damage_to_player} damage!")
+            if monster_hp <= 0:
+                print(f"You defeated the {monster['name']}!")
+                print("You've discovered the monsters stash of treasure!")
+                player_gold += monster['money']
+            if player_hp <= 0:
+                print("You have been defeated......")
+                break
+    return player_hp, player_gold, inventory, equipped_weapon
+
+def add_item_to_inventory(inventory: list, item:dict):
+    """Add an item dictionary to the inventory list."""
+    inventory.append(item)
+    print(f"Added {item['name']} to inventory.")
+
+def equip_item(inventory: list, item_type: str, current_equipped=None):
+    """Lets a user select and equip a piece of equipment."""
+    relevant_items = [item for item in inventory if item['type'] == item_type]
+    if not relevant_items:
+        print(f"No {item_type} found in inventory.")
+        return current_equipped
+    print(f"Select a {item_type} to equip:")
+    for i, item in enumerate(relevant_items, 1):
+        if item['type'] == 'weapon':
+            print(f"{i}. {item['name']} (Attack: {item.get('attack', 1)}) (Durability: {item['currentDurability']})")
         else:
-            print("Please (F)ight or (R)un")
-    if monster_hp <= 0:
-        print(f"You defeated the {monster['name']}!")
-        print("You've discovered the monsters stash of treasure!")
-        player_gold += monster['money']
-    elif player_hp <= 0:
-        print("You have been defeated......")
-    return player_hp, player_gold
+            print(f"{i}. {item['name']} (Type: {item['type']})")
+    choice = get_user_choice(f"Enter number (1-{len(relevant_items)}), or 0 for none: ", [str(i) for i in range(0, len(relevant_items)+1)])
+    choice_idx = int(choice)-1
+    if choice_idx >=0:
+        selected_item = relevant_items[choice_idx]
+        print(f"You have equipped {selected_item['name']}!")
+        return selected_item
+    else:
+        print("No item equipped.")
+        return None
+    
+def use_item(inventory: list):
+    """Allows player to select a consumable item to use."""
+    consumables = [item for item in inventory if item['type'] == 'consumable']
+    if not consumables:
+        print("No consumable items to use.")
+        return None
+    print("Consumable items:")
+    for i, item in enumerate(consumables, 1):
+        print(f"{i}. {item['name']} - {item.get('note', '')}")
+    choice = get_user_choice(f"Enter number (1-{len(consumables)}), or 0 to cancel: ", [str(i) for i in range(0, len(consumables)+1)])
+    choice_idx = int(choice)-1
+    if choice_idx >= 0:
+        selected = consumables[choice_idx]
+        return selected
+    else:
+        return None
 
 # def test_functions():
 #    """Function to test the functionalities of the game."""
